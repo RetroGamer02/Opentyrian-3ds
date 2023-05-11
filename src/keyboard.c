@@ -25,6 +25,8 @@
 
 #include "SDL.h"
 
+#include "3ds.h"
+
 JE_boolean ESCPressed;
 
 JE_boolean newkey, newmouse, keydown, mousedown;
@@ -133,114 +135,110 @@ void service_SDL_events( JE_boolean clear_new )
 	if (clear_new)
 		newkey = newmouse = false;
 	
-	while (SDL_PollEvent(&ev))
-	{
-		switch (ev.type)
-		{
-			case SDL_ACTIVEEVENT:
-				if (ev.active.state == SDL_APPINPUTFOCUS && !ev.active.gain)
-					input_grab(false);
-				break;
-			
-			case SDL_MOUSEMOTION:
-				mouse_x = ev.motion.x * vga_width / scalers[scaler].width;
-				mouse_y = ev.motion.y * vga_height / scalers[scaler].height;
-				break;
-			case SDL_KEYDOWN:
-				if (ev.key.keysym.mod & KMOD_CTRL)
-				{
-					/* <ctrl><bksp> emergency kill */
-					if (ev.key.keysym.sym == SDLK_BACKSPACE)
-					{
-						puts("\n\n\nCtrl+Backspace pressed. Doing emergency quit.\n");
-						SDL_Quit();
-						exit(1);
-					}
-					
-					/* <ctrl><f10> toggle input grab */
-					if (ev.key.keysym.sym == SDLK_F10)
-					{
-						input_grab(!input_grab_enabled);
-						break;
-					}
-				}
-				
-				if (ev.key.keysym.mod & KMOD_ALT)
-				{
-					/* <alt><enter> toggle fullscreen */
-					if (ev.key.keysym.sym == SDLK_RETURN)
-					{
-						if (!init_scaler(scaler, !fullscreen_enabled) && // try new fullscreen state
-						    !init_any_scaler(!fullscreen_enabled) &&     // try any scaler in new fullscreen state
-						    !init_scaler(scaler, fullscreen_enabled))    // revert on fail
-						{
-							exit(EXIT_FAILURE);
-						}
-						break;
-					}
-					
-					/* <alt><tab> disable input grab and fullscreen */
-					if (ev.key.keysym.sym == SDLK_TAB)
-					{
-						if (!init_scaler(scaler, false) &&             // try windowed
-						    !init_any_scaler(false) &&                 // try any scaler windowed
-						    !init_scaler(scaler, fullscreen_enabled))  // revert on fail
-						{
-							exit(EXIT_FAILURE);
-						}
-						
-						input_grab(false);
-						break;
-					}
-				}
+	//Matrix containing the name of each key. Useful for printing when a key is pressed
+	char keysNames[32][32] = {
+		"KEY_A", "KEY_B", "KEY_SELECT", "KEY_START",
+		"KEY_DRIGHT", "KEY_DLEFT", "KEY_DUP", "KEY_DDOWN",
+		"KEY_R", "KEY_L", "KEY_X", "KEY_Y",
+		"", "", "KEY_ZL", "KEY_ZR",
+		"", "", "", "",
+		"KEY_TOUCH", "", "", "",
+		"KEY_CSTICK_RIGHT", "KEY_CSTICK_LEFT", "KEY_CSTICK_UP", "KEY_CSTICK_DOWN",
+		"KEY_CPAD_RIGHT", "KEY_CPAD_LEFT", "KEY_CPAD_UP", "KEY_CPAD_DOWN"
+	};
 
-				keysactive[ev.key.keysym.sym] = 1;
-				
-				newkey = true;
-				lastkey_sym = ev.key.keysym.sym;
-				lastkey_mod = ev.key.keysym.mod;
-				lastkey_char = ev.key.keysym.unicode;
-				keydown = true;
-				return;
-			case SDL_KEYUP:
-				keysactive[ev.key.keysym.sym] = 0;
-				keydown = false;
-				return;
-			case SDL_MOUSEBUTTONDOWN:
-				if (!input_grab_enabled)
-				{
-					input_grab(true);
-					break;
-				}
-				// intentional fall-though
-			case SDL_MOUSEBUTTONUP:
-				if (ev.type == SDL_MOUSEBUTTONDOWN)
-				{
-					newmouse = true;
-					lastmouse_but = ev.button.button;
-					lastmouse_x = ev.button.x * vga_width / scalers[scaler].width;
-					lastmouse_y = ev.button.y * vga_height / scalers[scaler].height;
-					mousedown = true;
-				}
-				else
-				{
-					mousedown = false;
-				}
-				switch (ev.button.button)
-				{
-					case SDL_BUTTON_LEFT:
-						mouse_pressed[0] = mousedown; break;
-					case SDL_BUTTON_RIGHT:
-						mouse_pressed[1] = mousedown; break;
-					case SDL_BUTTON_MIDDLE:
-						mouse_pressed[2] = mousedown; break;
-				}
-				break;
-			case SDL_QUIT:
-				/* TODO: Call the cleanup code here. */
-				exit(0);
-				break;
+    uint32_t kDownOld = 0, kHeldOld = 0, kUpOld = 0; //In these variables there will be information about keys detected in the previous frame
+
+	while (SDL_PollEvent(&ev))
+	//Scan all the inputs. This should be done once for each frame
+	hidScanInput();
+
+	//hidKeysDown returns information about which buttons have been just pressed (and they weren't in the previous frame)
+	uint32_t kDown = hidKeysDown();
+	//hidKeysHeld returns information about which buttons have are held down in this frame
+	uint32_t kHeld = hidKeysHeld();
+	//hidKeysUp returns information about which buttons have been just released
+	uint32_t kUp = hidKeysUp();
+	{
+	
+		if (kDown)
+		{
+			if (kDown & KEY_START)
+			{
+				ev.key.keysym.sym = SDLK_RETURN;
+			}
+			
+			if (kDown & KEY_SELECT)
+			{
+				ev.key.keysym.sym = SDLK_ESCAPE;
+			}
+			
+			if (kDown & KEY_A)
+			{
+				ev.key.keysym.sym = SDLK_LCTRL;
+			}
+			
+			if (kDown & KEY_B)
+			{
+				ev.key.keysym.sym = SDLK_LALT;
+			}
+			
+			if (kDown & KEY_X)
+			{
+				ev.key.keysym.sym = SDLK_SPACE;
+			}
+			
+			if (kDown & KEY_Y)
+			{
+				//YButton = 1;
+			}
+			
+			if (kDown & KEY_LEFT)
+			{
+				ev.key.keysym.sym = SDLK_LEFT;
+			}
+			
+			if (kDown & KEY_RIGHT)
+			{
+				ev.key.keysym.sym = SDLK_RIGHT;
+			}
+			
+			if (kDown & KEY_UP)
+			{
+				ev.key.keysym.sym = SDLK_UP;
+			}
+			
+			if (kDown & KEY_DOWN)
+			{
+				ev.key.keysym.sym = SDLK_DOWN;
+			}
+			
+			if (kDown & KEY_L)
+			{
+				//LeftShoulder = 1;
+			}
+			
+			if (kDown & KEY_R)
+			{
+				//RightShoulder = 1;
+			}
+
+			keysactive[ev.key.keysym.sym] = 1;
+			
+			newkey = true;
+			lastkey_sym = ev.key.keysym.sym;
+			lastkey_mod = ev.key.keysym.mod;
+			lastkey_char = ev.key.keysym.unicode;
+			keydown = true;
 		}
+
+		if (kUp)
+		{
+			keysactive[ev.key.keysym.sym] = 0;
+			keydown = false;
+		}
+
+		return; //Maybe needed?
 	}
 }
 

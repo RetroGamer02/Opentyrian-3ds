@@ -1,0 +1,6 @@
+build
+*.bak
+*.3dsx
+*.elf
+*.bat
+.bash_history

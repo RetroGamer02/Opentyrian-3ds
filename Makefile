@@ -48,8 +48,8 @@ endif
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
-CFLAGS	:=	-g -Wall -O2 -mword-relocations \
-			-fomit-frame-pointer -ffast-math \
+CFLAGS	:=	-g -Wall -O3 -mword-relocations \
+			-fomit-frame-pointer -ffast-math -fassociative-math \
 			$(ARCH) 
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS $(REV_FLAG) -DTARGET_$(PLATFORM)
@@ -65,7 +65,7 @@ LIBS	:=  -lSDL_mixer -lmikmod -lmad -lSDL_image -lSDL -lpng -ljpeg -lz -lcitro3d
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= $(CTRULIB) $(PORTLIBS)
+LIBDIRS	:= $(CTRULIB) $(CURDIR)/sdl12n3ds
 
 
 #---------------------------------------------------------------------------------

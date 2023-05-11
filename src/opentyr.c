@@ -58,6 +58,20 @@
 #include <sys/stat.h>
 #endif
 
+//Matrix containing the name of each key. Useful for printing when a key is pressed
+char keysNames[32][32] = {
+	"KEY_A", "KEY_B", "KEY_SELECT", "KEY_START",
+	"KEY_DRIGHT", "KEY_DLEFT", "KEY_DUP", "KEY_DDOWN",
+	"KEY_R", "KEY_L", "KEY_X", "KEY_Y",
+	"", "", "KEY_ZL", "KEY_ZR",
+	"", "", "", "",
+	"KEY_TOUCH", "", "", "",
+	"KEY_CSTICK_RIGHT", "KEY_CSTICK_LEFT", "KEY_CSTICK_UP", "KEY_CSTICK_DOWN",
+	"KEY_CPAD_RIGHT", "KEY_CPAD_LEFT", "KEY_CPAD_UP", "KEY_CPAD_DOWN"
+};
+
+unsigned int kDownOld = 0, kHeldOld = 0, kUpOld = 0; //In these variables there will be information about keys detected in the previous frame
+
 const char *opentyrian_str = "OpenTyrian",
            *opentyrian_version = HG_REV;
 
@@ -121,6 +135,16 @@ void opentyrian_menu( void )
 	bool fade_in = true, quit = false;
 	do
 	{
+		//Scan all the inputs. This should be done once for each frame
+		hidScanInput();
+
+		//hidKeysDown returns information about which buttons have been just pressed (and they weren't in the previous frame)
+		unsigned int kDown = hidKeysDown();
+		//hidKeysHeld returns information about which buttons have are held down in this frame
+		unsigned int kHeld = hidKeysHeld();
+		//hidKeysUp returns information about which buttons have been just released
+		unsigned int kUp = hidKeysUp();
+
 		memcpy(VGAScreen->pixels, VGAScreen2->pixels, VGAScreen->pitch * VGAScreen->h);
 
 		for (MenuOptions i = 0; i < MenuOptions_MAX; i++)
@@ -152,9 +176,11 @@ void opentyrian_menu( void )
 
 		if (newkey)
 		{
-			switch (lastkey_sym)
+			//switch (lastkey_sym)
+			//{
+			//case SDLK_UP:
+			if (kDown & KEY_DUP)
 			{
-			case SDLK_UP:
 				do
 				{
 					if (sel-- == 0)
@@ -164,7 +190,10 @@ void opentyrian_menu( void )
 				
 				JE_playSampleNum(S_CURSOR);
 				break;
-			case SDLK_DOWN:
+			}
+			//case SDLK_DOWN:
+			if (kDown & KEY_DDOWN)
+			{
 				do
 				{
 					if (++sel >= MenuOptions_MAX)
@@ -174,8 +203,10 @@ void opentyrian_menu( void )
 				
 				JE_playSampleNum(S_CURSOR);
 				break;
-				
-			case SDLK_LEFT:
+			}
+			//case SDLK_LEFT:
+			if (kDown & KEY_DLEFT)
+			{
 				if (sel == MENU_SCALER)
 				{
 					do
@@ -189,7 +220,10 @@ void opentyrian_menu( void )
 					JE_playSampleNum(S_CURSOR);
 				}
 				break;
-			case SDLK_RIGHT:
+			}
+			//case SDLK_RIGHT:
+			if (kDown & KEY_DRIGHT)
+			{
 				if (sel == MENU_SCALER)
 				{
 					do
@@ -203,7 +237,10 @@ void opentyrian_menu( void )
 					JE_playSampleNum(S_CURSOR);
 				}
 				break;
-			case SDLK_RETURN:
+			}
+			//case SDLK_RETURN:
+			if (kDown & KEY_START)
+			{
 				switch (sel)
 				{
 				case MENU_ABOUT:
@@ -264,15 +301,18 @@ void opentyrian_menu( void )
 					break;
 				}
 				break;
-				
-			case SDLK_ESCAPE:
+			}
+			//case SDLK_ESCAPE:
+			if (kDown & KEY_SELECT)
+			{
 				quit = true;
 				JE_playSampleNum(S_SPRING);
 				break;
-				
-			default:
-				break;
 			}
+				
+			//default:
+				//break;
+			//}
 		}
 	} while (!quit);
 }
@@ -312,12 +352,12 @@ int main( int argc, char *argv[] )
 
 	init_video();
 #ifdef _3DS
-	SDL_N3DSKeyBind(KEY_CPAD_UP|KEY_CSTICK_UP, SDLK_UP);
+	/*SDL_N3DSKeyBind(KEY_CPAD_UP|KEY_CSTICK_UP, SDLK_UP);
 	SDL_N3DSKeyBind(KEY_CPAD_DOWN|KEY_CSTICK_DOWN, SDLK_DOWN);
 	SDL_N3DSKeyBind(KEY_CPAD_LEFT|KEY_CSTICK_LEFT, SDLK_LEFT);
 	SDL_N3DSKeyBind(KEY_CPAD_RIGHT|KEY_CSTICK_RIGHT, SDLK_RIGHT);
 	SDL_N3DSKeyBind(KEY_A, SDLK_RETURN);
-	SDL_N3DSKeyBind(0, SDLK_a);
+	SDL_N3DSKeyBind(0, SDLK_a);*/
 
 	printf("\nWelcome to... >> %s %s <<\n\n", opentyrian_str, opentyrian_version);
 
